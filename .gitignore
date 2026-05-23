@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+B/
+CMakeFiles/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+orms_cpp
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# QuickFIX runtime
+log/
+store/
+*.log
+*.session
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+*.tmp

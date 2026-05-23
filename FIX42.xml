@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fix SYSTEM "http://www.quickfixengine.org/FIX.dtd">
+<fix major="4" minor="2">
+  <header>
+    <field number="8" name="BeginString" type="STRING"/>
+    <field number="9" name="BodyLength" type="LENGTH"/>
+    <field number="35" name="MsgType" type="STRING"/>
+    <field number="49" name="SenderCompID" type="STRING"/>
+    <field number="56" name="TargetCompID" type="STRING"/>
+    <field number="34" name="MsgSeqNum" type="SEQNUM"/>
+    <field number="52" name="SendingTime" type="UTCTIMESTAMP"/>
+  </header>
+  <trailer>
+    <field number="93" name="SignLength" type="LENGTH"/>
+    <field number="89" name="Signature" type="DATA"/>
+    <field number="10" name="CheckSum" type="STRING"/>
+  </trailer>
+  <messages>
+    <message name="Logon" msgtype="A" msgcat="admin">
+      <field number="108" name="HeartBtInt" required="Y"/>
+      <field number="141" name="ResetSeqNumFlag" required="N"/>
+      <field number="553" name="Username" required="N"/>
+      <field number="554" name="Password" required="N"/>
+    </message>
+    <message name="NewOrderSingle" msgtype="D" msgcat="app">
+      <field number="11" name="ClOrdID" required="Y"/>
+      <field number="21" name="HandlInst" required="Y"/>
+      <field number="55" name="Symbol" required="Y"/>
+      <field number="54" name="Side" required="Y"/>
+      <field number="60" name="TransactTime" required="Y"/>
+      <field number="38" name="OrderQty" required="Y"/>
+      <field number="40" name="OrdType" required="Y"/>
+      <field number="44" name="Price" required="N"/>
+    </message>
+    <message name="ExecutionReport" msgtype="8" msgcat="app">
+      <field number="37" name="OrderID" required="Y"/>
+      <field number="11" name="ClOrdID" required="N"/>
+      <field number="150" name="ExecType" required="Y"/>
+      <field number="39" name="OrdStatus" required="Y"/>
+      <field number="55" name="Symbol" required="Y"/>
+      <field number="54" name="Side" required="Y"/>
+      <field number="38" name="OrderQty" required="N"/>
+      <field number="151" name="LeavesQty" required="N"/>
+      <field number="14" name="CumQty" required="N"/>
+    </message>
+  </messages>
+  <fields>
+    <field number="8" name="BeginString" type="STRING"/>
+    <field number="9" name="BodyLength" type="LENGTH"/>
+    <field number="10" name="CheckSum" type="STRING"/>
+    <field number="11" name="ClOrdID" type="STRING"/>
+    <field number="14" name="CumQty" type="QTY"/>
+    <field number="21" name="HandlInst" type="CHAR"/>
+    <field number="34" name="MsgSeqNum" type="SEQNUM"/>
+    <field number="35" name="MsgType" type="STRING"/>
+    <field number="37" name="OrderID" type="STRING"/>
+    <field number="38" name="OrderQty" type="QTY"/>
+    <field number="39" name="OrdStatus" type="CHAR"/>
+    <field number="40" name="OrdType" type="CHAR"/>
+    <field number="44" name="Price" type="PRICE"/>
+    <field number="49" name="SenderCompID" type="STRING"/>
+    <field number="52" name="SendingTime" type="UTCTIMESTAMP"/>
+    <field number="54" name="Side" type="CHAR"/>
+    <field number="55" name="Symbol" type="STRING"/>
+    <field number="56" name="TargetCompID" type="STRING"/>
+    <field number="60" name="TransactTime" type="UTCTIMESTAMP"/>
+    <field number="89" name="Signature" type="DATA"/>
+    <field number="93" name="SignLength" type="LENGTH"/>
+    <field number="108" name="HeartBtInt" type="INT"/>
+    <field number="141" name="ResetSeqNumFlag" type="BOOLEAN"/>
+    <field number="150" name="ExecType" type="CHAR"/>
+    <field number="151" name="LeavesQty" type="QTY"/>
+    <field number="553" name="Username" type="STRING"/>
+    <field number="554" name="Password" type="STRING"/>
+  </fields>
+</fix>
