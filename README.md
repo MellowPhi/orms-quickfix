@@ -1,6 +1,6 @@
 # orms_cpp
 
-This folder contains a C++ QuickFIX implementation that mirrors the Java project structure.
+This folder contains a C++ QuickFIX implementation
 
 ## Project layout
 
@@ -13,19 +13,23 @@ This folder contains a C++ QuickFIX implementation that mirrors the Java project
 - `src/main.cpp` - REST server launcher and controller integration
 - `src/HttpServer.h/cpp` - minimal REST server exposing `POST /order`
 
+## Dependicies
+- Use FIXIMLATOR as a mock FX Simulator
+- Any REST client or curl to POST order
+
 ## Build
 
 Make sure `cmake` and QuickFIX are installed and available in your environment.
 
-```powershell
+```bash
 cd cpp
 cmake -S . -B build
 cmake --build build
 ```
 
-## RuN
+## Run
 
-```powershell
+```bash
 cd cpp\build
 ./orms_cpp
 ```
