@@ -17,11 +17,25 @@ bool OrderService::placeOrder(const Order& order) {
         return false;
     }
 
+    // Validate side
+    if (order.side != "BUY" && order.side != "SELL") {
+        std::cerr << "Invalid order side. Must be 'BUY' or 'SELL'." << std::endl;
+        return false;
+    }
+
+    // Validate quantity
+    if (order.quantity <= 0) {
+        std::cerr << "Invalid order quantity. Must be greater than 0." << std::endl;
+        return false;
+    }
+
+    const char fixSide = (order.side == "BUY") ? FIX::Side_BUY : FIX::Side_SELL;
+
     FIX42::NewOrderSingle newOrder(
         FIX::ClOrdID(std::to_string(std::hash<std::string>{}(order.symbol + std::to_string(order.quantity)))),
         FIX::HandlInst('1'),
         FIX::Symbol(order.symbol),
-        FIX::Side(FIX::Side_BUY),
+        FIX::Side(fixSide),
         FIX::TransactTime(FIX::UtcTimeStamp()),
         FIX::OrdType(FIX::OrdType_MARKET));
 
