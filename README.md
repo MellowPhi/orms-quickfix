@@ -1,41 +1,44 @@
-# orms_cpp
+# orms-cpp
 
-A high-performance C++ Order Management System (OMS) that bridges REST/JSON requests to the FIX 4.2 protocol.
+**A lightweight C++ bridge between REST/JSON and the FIX protocol.**
 
-## Running the Demo
+I built `orms-cpp` to dive deep into the world of financial engineering and high-performance messaging. My goal was to master the industry-standard **QuickFIX** engine—learning everything from session management and message cracking to bridging modern REST/JSON interfaces with the rigid FIX 4.2 protocol. This project demonstrates my ability to navigate complex third-party frameworks, manage multi-threaded synchronization, and translate real-world business requirements into a robust C++14 system.
 
-### 1. Start a FIX Simulator
-The application is configured to connect to a simulator at `localhost:9878`. You can use [FIXIMULATOR](https://github.com/DmitryShtatnov/Fiximulator) or any other FIX acceptor.
+---
 
-### 2. Start the OMS
+## 💡 What makes this interesting?
+
+*   **Non-blocking by design**: The HTTP server runs on its own background thread (`std::thread`). This ensures that incoming web traffic doesn't block the main FIX initiator thread or vice-versa.
+*   **Flexible API**: I made the input handling a bit more forgiving in the `HttpServer` layer. You can send `symbol` or `ticker`, and it handles case-insensitive side inputs like "BUY", "S", or "sell".
+*   **C++14 Implementation**: The project is built using the C++14 standard. I implemented a custom `Optional` template class to handle potentially missing values (like the FIX SessionID) without needing C++17's `std::optional`.
+*   **Standard Tech**: It uses **QuickFIX**, the industry-standard engine for financial messaging, along with `nlohmann_json` for robust JSON parsing.
+
+---
+
+## 🏗️ How it's put together
+
+The codebase is organized into a few clear layers:
+
+*   **`HttpServer`**: Uses `cpp-httplib` to listen for orders. It handles the JSON parsing and input normalization.
+*   **`OrderController`**: Acts as the bridge between the transport (HTTP) and the business logic.
+*   **`OrderService`**: The core business layer. It manages the active `FIX::SessionID` and translates our internal `Order` struct into a `FIX42::NewOrderSingle` message.
+*   **`OrderApplication`**: Our implementation of the `FIX::Application` interface. It handles protocol events like `onLogon` and `fromApp` (Execution Reports).
+
+---
+
+## 🏃 Quick Start (See it in action)
+
+### 1. The FIX Simulator
+The app expects a FIX acceptor at `localhost:9878`. You can use [FIXIMULATOR](http://fiximulator.org/) or any other FIX simulator to view the outgoing messages.
+
+### 2. Launch the App
 ```bash
 ./build/orms_cpp
 ```
+Once connected, you'll see: `Logon successful: FIX.4.2:BANZAI->FIXIMULATOR`.
 
-```bash
-❯ ./build/orms_cpp
-Session created: FIX.4.2:BANZAI->FIXIMULATOR
-[HTTP] Listening on http://0.0.0.0:8080
-QuickFIX C++ initiator started.
-REST endpoint available at http://localhost:8080/order
-Press Enter to stop.
-ToAdmin: 8=FIX.4.29=7835=A34=149=BANZAI52=20260524-15:52:52.04956=FIXIMULATOR98=0108=30141=Y10=063
-FromAdmin: 8=FIX.4.29=7835=A34=149=FIXIMULATOR52=20260524-15:52:52.06256=BANZAI98=0108=30141=Y10=058
-Logon successful: FIX.4.2:BANZAI->FIXIMULATOR
-OrderService session set: FIX.4.2:BANZAI->FIXIMULATOR
-Controller received order request: AAPL x 100
-ToApp: 8=FIX.4.29=13435=D34=249=BANZAI52=20260524-15:53:06.22356=FIXIMULATOR11=187037968135696780321=138=10040=154=255=AAPL60=20260524-15:53:0610=061
-Controller forwarded order to service.
-FromAdmin: 8=FIX.4.29=6035=034=249=FIXIMULATOR52=20260524-15:53:22.84456=BANZAI10=225
-ToAdmin: 8=FIX.4.29=6035=034=349=BANZAI52=20260524-15:53:36.09956=FIXIMULATOR10=233
-FromAdmin: 8=FIX.4.29=6035=034=349=FIXIMULATOR52=20260524-15:53:53.83956=BANZAI10=234
-ToAdmin: 8=FIX.4.29=6035=034=449=BANZAI52=20260524-15:54:06.13256=FIXIMULATOR10=220
-FromAdmin: 8=FIX.4.29=6035=034=449=FIXIMULATOR52=20260524-15:54:23.84156=BANZAI10=226
-Logout: FIX.4.2:BANZAI->FIXIMULATOR
-```
-### 3. Place an Order
-Use `curl` to send a Market Order:
-
+### 3. Send an Order
+Open a new terminal and send a Market Order via `curl`:
 ```bash
 curl -X POST http://localhost:8080/order \
   -H "Content-Type: application/json" \
@@ -46,90 +49,45 @@ curl -X POST http://localhost:8080/order \
   }'
 ```
 
-**Request Parameters:**
-- `symbol` (or `ticker`): The instrument symbol (e.g., "MSFT").
-- `quantity`: Positive integer.
-- `side`: "BUY", "SELL", "B", or "S" (case-insensitive).
+### 4. What happened?
+The `HttpServer` parsed the JSON, normalized "BUY" to the FIX side `1`, and the `OrderService` generated a `NewOrderSingle`. You can see the simulator catching it in the screenshot below:
 
+<img width="1224" height="934" alt="FIXIMULATOR Screenshot" src="https://github.com/user-attachments/assets/c065ab9c-3eda-45f5-a6ef-49c7a55378e6" />
 
-<img width="1224" height="934" alt="image" src="https://github.com/user-attachments/assets/c065ab9c-3eda-45f5-a6ef-49c7a55378e6" />
-FIXIMULATOR recieves new order FIX message.
+**The actual FIX message generated by the app:**
+`8=FIX.4.2|9=134|35=D|34=2|49=BANZAI|52=20260524-15:53:06.223|56=FIXIMULATOR|11=187037...|38=100|40=1|54=1|55=AAPL|60=20260524-15:53:06|10=061|`
 
-```bash
-<20260524-16:04:45, FIX.4.2:FIXIMULATOR->BANZAI, event> (Session FIX.4.2:FIXIMULATOR->BANZAI schedule is daily, 00:00:00 UTC - 00:00:00 UTC (daily, 00:00:00 UTC - 00:00:00 UTC))
-<20260524-16:04:45, FIX.4.2:FIXIMULATOR->BANZAI, event> (Created session: FIX.4.2:FIXIMULATOR->BANZAI)
-May 25, 2026 2:04:45 AM quickfix.mina.acceptor.AbstractSocketAcceptor startAcceptingConnections
-INFO: Listening for connections at 0.0.0.0/0.0.0.0:9878
-May 25, 2026 2:04:52 AM quickfix.mina.acceptor.AcceptorIoHandler sessionCreated
-INFO: MINA session created: /127.0.0.1:47124
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=7835=A34=149=BANZAI52=20260524-16:04:52.84456=FIXIMULATOR98=0108=30141=Y10=064)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Accepting session FIX.4.2:FIXIMULATOR->BANZAI from /127.0.0.1:47124)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Acceptor heartbeat set to 30 seconds)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Logon contains ResetSeqNumFlag=Y, resetting sequence numbers to 1)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Received logon request)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, outgoing> (8=FIX.4.29=7835=A34=149=FIXIMULATOR52=20260524-16:04:52.86456=BANZAI98=0108=30141=Y10=066)
-<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Responding to logon request)
-<20260524-16:04:53, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=13435=D34=249=BANZAI52=20260524-16:04:53.17956=FIXIMULATOR11=187037968135696780321=138=10040=154=255=AAPL60=20260524-16:04:5310=069)
-SecurityID: null
-IDSource: null
-<20260524-16:05:23, FIX.4.2:FIXIMULATOR->BANZAI, outgoing> (8=FIX.4.29=6035=034=249=FIXIMULATOR52=20260524-16:05:23.84456=BANZAI10=224)
-<20260524-16:05:23, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=6035=034=349=BANZAI52=20260524-16:05:23.84856=FIXIMULATOR10=229)
-```
+| Tag | What it means | Value |
+|---|---|---|
+| **35** | Message Type | `D` (New Order - Single) |
+| **38** | Quantity | `100` |
+| **54** | Side | `1` (Buy) |
+| **55** | Symbol | `AAPL` |
 
-## Features
-- **REST API**: Simple JSON interface for order placement.
-- **FIX 4.2 Integration**: Uses QuickFIX for reliable financial messaging.
-- **Field Normalization**: Support for multiple field aliases and case-insensitive inputs.
-- **Health Monitoring**: Built-in health check endpoint.
+---
 
-## Project Layout
-- `include/orms/` - Project header files
-- `src/` - C++ implementation files
-- `thirdparty/` - External libraries (e.g., `httplib`)
-- `FIX42.xml` - FIX protocol dictionary
-- `quickfix.cfg` - Session settings (Sender: `BANZAI`, Target: `FIXIMULATOR`)
-
-## Dependencies
-- **QuickFIX**: FIX protocol engine
-- **nlohmann_json**: JSON for Modern C++
-- **cpp-httplib**: Header-only HTTP server (included in `src/`)
-
-## Build Instructions
+## 🛠️ Build Instructions
 
 ### Prerequisites
-Ensure `cmake`, `pkg-config`, and `quickfix` are installed.
+- `cmake` (3.15+)
+- `libquickfix-dev`
+- `nlohmann-json3-dev`
 
-```bash
-# Ubuntu/Debian
-sudo apt-get install libquickfix-dev nlohmann-json3-dev
-```
-
-### Build
 ```bash
 cmake -S . -B build
 cmake --build build
 ```
 
+---
 
+## 📡 API Reference
 
-## API Reference
+### `POST /order`
+| Field | Type | Note |
+|-------|------|------|
+| `symbol` | string | Alias: `ticker` |
+| `quantity`| int | Must be > 0 |
+| `side` | string | Supports `BUY`, `SELL`, `B`, or `S` |
 
-### POST `/order`
-Submits a New Order Single (MsgType=D) to the FIX engine.
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `symbol` | string | Yes | Instrument ticker (alias: `ticker`) |
-| `quantity` | int | Yes | Number of units |
-| `side` | string | Yes | Direction: `BUY` or `SELL` (aliases: `B`, `S`) |
-
-**Response Codes:**
-- `200 OK`: Order successfully forwarded to FIX engine.
-- `400 Bad Request`: Invalid JSON, missing fields, or validation error (e.g., non-positive quantity).
-- `503 Service Unavailable`: FIX session is not logged on or connection is lost.
-
-### GET `/health`
-Returns the status of the HTTP server.
-
-**Response Codes:**
-- `200 OK`: Server is healthy.
+### `GET /health`
+Returns `{"status": "ok"}` if the server is healthy.
