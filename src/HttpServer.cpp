@@ -133,8 +133,21 @@ Optional<Order> HttpServer::parseOrderJson(const std::string& body) {
 
     auto symbol = parseString("symbol");
     auto quantity = parseInt("quantity");
-    if (!symbol.has_value() || !quantity.has_value()) {
+    auto sideOpt = parseString("side");
+    if (!symbol.has_value() || !quantity.has_value() || !sideOpt.has_value()) {
         return Optional<Order>();
     }
-    return Optional<Order>(Order{symbol.value(), quantity.value()});
+
+    std::string side = sideOpt.value();
+    // normalize to uppercase
+    std::transform(side.begin(), side.end(), side.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    if (side == "BUY" || side == "B") {
+        side = "BUY";
+    } else if (side == "SELL" || side == "S") {
+        side = "SELL";
+    } else {
+        return Optional<Order>();
+    }
+
+    return Optional<Order>(Order{symbol.value(), quantity.value(), side});
 }
