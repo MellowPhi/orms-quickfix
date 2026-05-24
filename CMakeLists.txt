@@ -19,7 +19,7 @@ add_executable(orms_cpp
     src/HttpServer.cpp
 )
 
-target_include_directories(orms_cpp PRIVATE ${QuickFIX_INCLUDE_DIRS} src)
+target_include_directories(orms_cpp PRIVATE ${QuickFIX_INCLUDE_DIRS} include thirdparty/httplib)
 target_link_libraries(orms_cpp PRIVATE PkgConfig::QuickFIX nlohmann_json::nlohmann_json)
 
 if (WIN32)
