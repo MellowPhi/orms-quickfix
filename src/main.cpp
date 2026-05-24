@@ -7,6 +7,7 @@
 #include <quickfix/FileStore.h>
 #include <quickfix/FileLog.h>
 #include <iostream>
+#include <thread>
 
 int main(int argc, char* argv[]) {
     const std::string configFile = "quickfix.cfg";
@@ -19,13 +20,11 @@ int main(int argc, char* argv[]) {
         OrderService orderService;
         OrderController orderController(orderService);
         OrderApplication application(orderService);
-        HttpServer httpServer(orderController);
+        HttpServer httpServer(orderController, 8080);
         FIX::SocketInitiator initiator(application, storeFactory, settings, logFactory);
 
-        if (!httpServer.start(8080)) {
-            std::cerr << "Failed to start REST server on port 8080." << std::endl;
-            return 1;
-        }
+        // Start HTTP server on background thread
+        std::thread serverThread([&httpServer](){ httpServer.start(); });
 
         initiator.start();
         std::cout << "QuickFIX C++ initiator started." << std::endl;
@@ -34,6 +33,8 @@ int main(int argc, char* argv[]) {
         std::cin.get();
 
         httpServer.stop();
+        if (serverThread.joinable()) serverThread.join();
+
         initiator.stop();
     } catch (const std::exception& ex) {
         std::cerr << "Error starting QuickFIX application: " << ex.what() << std::endl;
