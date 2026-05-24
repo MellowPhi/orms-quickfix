@@ -2,6 +2,80 @@
 
 A high-performance C++ Order Management System (OMS) that bridges REST/JSON requests to the FIX 4.2 protocol.
 
+## Running the Demo
+
+### 1. Start a FIX Simulator
+The application is configured to connect to a simulator at `localhost:9878`. You can use [FIXIMULATOR](https://github.com/DmitryShtatnov/Fiximulator) or any other FIX acceptor.
+
+### 2. Start the OMS
+```bash
+./build/orms_cpp
+```
+
+```bash
+❯ ./build/orms_cpp
+Session created: FIX.4.2:BANZAI->FIXIMULATOR
+[HTTP] Listening on http://0.0.0.0:8080
+QuickFIX C++ initiator started.
+REST endpoint available at http://localhost:8080/order
+Press Enter to stop.
+ToAdmin: 8=FIX.4.29=7835=A34=149=BANZAI52=20260524-15:52:52.04956=FIXIMULATOR98=0108=30141=Y10=063
+FromAdmin: 8=FIX.4.29=7835=A34=149=FIXIMULATOR52=20260524-15:52:52.06256=BANZAI98=0108=30141=Y10=058
+Logon successful: FIX.4.2:BANZAI->FIXIMULATOR
+OrderService session set: FIX.4.2:BANZAI->FIXIMULATOR
+Controller received order request: AAPL x 100
+ToApp: 8=FIX.4.29=13435=D34=249=BANZAI52=20260524-15:53:06.22356=FIXIMULATOR11=187037968135696780321=138=10040=154=255=AAPL60=20260524-15:53:0610=061
+Controller forwarded order to service.
+FromAdmin: 8=FIX.4.29=6035=034=249=FIXIMULATOR52=20260524-15:53:22.84456=BANZAI10=225
+ToAdmin: 8=FIX.4.29=6035=034=349=BANZAI52=20260524-15:53:36.09956=FIXIMULATOR10=233
+FromAdmin: 8=FIX.4.29=6035=034=349=FIXIMULATOR52=20260524-15:53:53.83956=BANZAI10=234
+ToAdmin: 8=FIX.4.29=6035=034=449=BANZAI52=20260524-15:54:06.13256=FIXIMULATOR10=220
+FromAdmin: 8=FIX.4.29=6035=034=449=FIXIMULATOR52=20260524-15:54:23.84156=BANZAI10=226
+Logout: FIX.4.2:BANZAI->FIXIMULATOR
+```
+### 3. Place an Order
+Use `curl` to send a Market Order:
+
+```bash
+curl -X POST http://localhost:8080/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "AAPL",
+    "quantity": 100,
+    "side": "BUY"
+  }'
+```
+
+**Request Parameters:**
+- `symbol` (or `ticker`): The instrument symbol (e.g., "MSFT").
+- `quantity`: Positive integer.
+- `side`: "BUY", "SELL", "B", or "S" (case-insensitive).
+
+
+<img width="1224" height="934" alt="image" src="https://github.com/user-attachments/assets/c065ab9c-3eda-45f5-a6ef-49c7a55378e6" />
+FIXIMULATOR recieves new order FIX message.
+
+```bash
+<20260524-16:04:45, FIX.4.2:FIXIMULATOR->BANZAI, event> (Session FIX.4.2:FIXIMULATOR->BANZAI schedule is daily, 00:00:00 UTC - 00:00:00 UTC (daily, 00:00:00 UTC - 00:00:00 UTC))
+<20260524-16:04:45, FIX.4.2:FIXIMULATOR->BANZAI, event> (Created session: FIX.4.2:FIXIMULATOR->BANZAI)
+May 25, 2026 2:04:45 AM quickfix.mina.acceptor.AbstractSocketAcceptor startAcceptingConnections
+INFO: Listening for connections at 0.0.0.0/0.0.0.0:9878
+May 25, 2026 2:04:52 AM quickfix.mina.acceptor.AcceptorIoHandler sessionCreated
+INFO: MINA session created: /127.0.0.1:47124
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=7835=A34=149=BANZAI52=20260524-16:04:52.84456=FIXIMULATOR98=0108=30141=Y10=064)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Accepting session FIX.4.2:FIXIMULATOR->BANZAI from /127.0.0.1:47124)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Acceptor heartbeat set to 30 seconds)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Logon contains ResetSeqNumFlag=Y, resetting sequence numbers to 1)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Received logon request)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, outgoing> (8=FIX.4.29=7835=A34=149=FIXIMULATOR52=20260524-16:04:52.86456=BANZAI98=0108=30141=Y10=066)
+<20260524-16:04:52, FIX.4.2:FIXIMULATOR->BANZAI, event> (Responding to logon request)
+<20260524-16:04:53, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=13435=D34=249=BANZAI52=20260524-16:04:53.17956=FIXIMULATOR11=187037968135696780321=138=10040=154=255=AAPL60=20260524-16:04:5310=069)
+SecurityID: null
+IDSource: null
+<20260524-16:05:23, FIX.4.2:FIXIMULATOR->BANZAI, outgoing> (8=FIX.4.29=6035=034=249=FIXIMULATOR52=20260524-16:05:23.84456=BANZAI10=224)
+<20260524-16:05:23, FIX.4.2:FIXIMULATOR->BANZAI, incoming> (8=FIX.4.29=6035=034=349=BANZAI52=20260524-16:05:23.84856=FIXIMULATOR10=229)
+```
+
 ## Features
 - **REST API**: Simple JSON interface for order placement.
 - **FIX 4.2 Integration**: Uses QuickFIX for reliable financial messaging.
@@ -36,38 +110,7 @@ cmake -S . -B build
 cmake --build build
 ```
 
-## Running the Demo
 
-### 1. Start a FIX Simulator
-The application is configured to connect to a simulator at `localhost:9878`. You can use [FIXIMULATOR](https://github.com/DmitryShtatnov/Fiximulator) or any other FIX acceptor.
-
-### 2. Start the OMS
-```bash
-./build/orms_cpp
-```
-
-### 3. Place an Order
-Use `curl` to send a Market Order:
-
-```bash
-curl -X POST http://localhost:8080/order \
-  -H "Content-Type: application/json" \
-  -d '{
-    "symbol": "AAPL",
-    "quantity": 100,
-    "side": "BUY"
-  }'
-```
-
-**Request Parameters:**
-- `symbol` (or `ticker`): The instrument symbol (e.g., "MSFT").
-- `quantity`: Positive integer.
-- `side`: "BUY", "SELL", "B", or "S" (case-insensitive).
-
-### 4. Check Health
-```bash
-curl http://localhost:8080/health
-```
 
 ## API Reference
 
