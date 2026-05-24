@@ -1,140 +1,97 @@
 #include "HttpServer.h"
+
 #include <iostream>
-#include <sstream>
-#include <algorithm>
-#include <cctype>
-#include <chrono>
-#include <thread>
+#include <nlohmann/json.hpp>
 
-HttpServer::HttpServer(OrderController& controller)
-    : controller_(controller), server_(std::make_unique<httplib::Server>()) {
+using json = nlohmann::json;
+
+HttpServer::HttpServer(OrderController& controller, int port)
+    : controller_(controller)
+    , port_(port)
+{
+    registerRoutes();
 }
 
-HttpServer::~HttpServer() {
-    stop();
+void HttpServer::start()
+{
+    std::cout << "[HTTP] Listening on http://0.0.0.0:" << port_ << std::endl;
+    server_.listen("0.0.0.0", port_);
 }
 
-bool HttpServer::start(unsigned short port) {
-    if (running_) {
-        return false;
-    }
-
-    // Register POST /order endpoint
-    server_->Post("/order", [this](const httplib::Request& req, httplib::Response& res) {
-        // Check content type
-        if (!req.has_header("Content-Type") ||
-            req.get_header_value("Content-Type").find("application/json") == std::string::npos) {
-            res.set_content("{\"error\":\"unsupported content type\"}", "application/json");
-            res.status = 415;
-            return;
-        }
-
-        // Parse JSON body
-        auto orderOpt = parseOrderJson(req.body);
-        if (!orderOpt.has_value()) {
-            res.set_content("{\"error\":\"invalid JSON body\"}", "application/json");
-            res.status = 400;
-            return;
-        }
-
-        // Place order and build response
-        const Order order = orderOpt.value();
-        bool success = controller_.placeOrder(order);
-
-        std::ostringstream responseBody;
-        responseBody << "{\"status\":\"" << (success ? "accepted" : "failed") << "\",";
-        responseBody << "\"symbol\":\"" << order.symbol << "\",";
-        responseBody << "\"quantity\":" << order.quantity << "}";
-
-        res.set_content(responseBody.str(), "application/json");
-        res.status = success ? 200 : 500;
-    });
-
-    // Register catch-all for 404
-    server_->set_default_headers({{"Server", "ORMS-CPP/1.0"}});
-
-    running_ = true;
-    // Run server in background thread
-    serverThread_ = std::thread([this, port]() {
-        server_->listen("0.0.0.0", port);
-    });
-
-    // Give server a moment to start
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    return running_;
+void HttpServer::stop()
+{
+    server_.stop();
 }
 
-void HttpServer::stop() {
-    if (!running_) {
-        return;
-    }
-    running_ = false;
-    if (server_) {
-        server_->stop();
-    }
-    if (serverThread_.joinable()) {
-        serverThread_.join();
-    }
-}
+void HttpServer::registerRoutes()
+{
+    // POST /order
+    server_.Post("/order", [this](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Content-Type", "application/json");
 
-bool HttpServer::isRunning() const {
-    return running_;
-}
-
-Optional<Order> HttpServer::parseOrderJson(const std::string& body) {
-    auto parseString = [&](const std::string& field) -> Optional<std::string> {
-        const std::string quoted = '"' + field + '"';
-        auto pos = body.find(quoted);
-        if (pos == std::string::npos) {
-            return Optional<std::string>();
-        }
-        pos = body.find(':', pos + quoted.size());
-        if (pos == std::string::npos) {
-            return Optional<std::string>();
-        }
-        pos = body.find('"', pos + 1);
-        if (pos == std::string::npos) {
-            return Optional<std::string>();
-        }
-        auto end = body.find('"', pos + 1);
-        if (end == std::string::npos) {
-            return Optional<std::string>();
-        }
-        return Optional<std::string>(body.substr(pos + 1, end - pos - 1));
-    };
-
-    auto parseInt = [&](const std::string& field) -> Optional<int> {
-        const std::string quoted = '"' + field + '"';
-        auto pos = body.find(quoted);
-        if (pos == std::string::npos) {
-            return Optional<int>();
-        }
-        pos = body.find(':', pos + quoted.size());
-        if (pos == std::string::npos) {
-            return Optional<int>();
-        }
-        auto numStart = pos + 1;
-        while (numStart < body.size() && std::isspace(static_cast<unsigned char>(body[numStart]))) {
-            numStart++;
-        }
-        auto numEnd = numStart;
-        while (numEnd < body.size() && (std::isdigit(static_cast<unsigned char>(body[numEnd])) || body[numEnd] == '-')) {
-            numEnd++;
-        }
-        if (numStart == numEnd) {
-            return Optional<int>();
-        }
+        json body;
         try {
-            return Optional<int>(std::stoi(body.substr(numStart, numEnd - numStart)));
-        } catch (...) {
-            return Optional<int>();
+            body = json::parse(req.body);
+        } catch (const json::parse_error& e) {
+            res.status = 400;
+            res.body = json{{"error", std::string("Invalid JSON: ") + e.what()}}.dump();
+            return;
         }
-    };
 
-    auto symbol = parseString("symbol");
-    auto quantity = parseInt("quantity");
-    if (!symbol.has_value() || !quantity.has_value()) {
-        return Optional<Order>();
-    }
-    return Optional<Order>(Order{symbol.value(), quantity.value()});
+        // Accept either "symbol" or "ticker" for compatibility
+        if (!(body.contains("symbol") || body.contains("ticker")) || !body.contains("quantity") || !body.contains("side")) {
+            res.status = 400;
+            res.body = json{{"error", "Missing required fields: symbol|ticker, quantity, side"}}.dump();
+            return;
+        }
+
+        std::string symbol;
+        try {
+            if (body.contains("symbol")) symbol = body["symbol"].get<std::string>();
+            else symbol = body["ticker"].get<std::string>();
+        } catch (const json::exception& e) {
+            res.status = 400;
+            res.body = json{{"error", std::string("Type error: ") + e.what()}}.dump();
+            return;
+        }
+
+        int quantity;
+        std::string side;
+        try {
+            quantity = body["quantity"].get<int>();
+            side = body["side"].get<std::string>();
+        } catch (const json::exception& e) {
+            res.status = 400;
+            res.body = json{{"error", std::string("Type error: ") + e.what()}}.dump();
+            return;
+        }
+
+        // Normalize side (case-insensitive)
+        std::transform(side.begin(), side.end(), side.begin(), [](unsigned char c){ return static_cast<char>(std::toupper(c)); });
+        if (side == "B") side = "BUY";
+        if (side == "S") side = "SELL";
+        if (side != "BUY" && side != "SELL") {
+            res.status = 400;
+            res.body = json{{"error", "Invalid side; must be BUY or SELL"}}.dump();
+            return;
+        }
+
+        Order order{symbol, quantity, side};
+        bool ok = controller_.placeOrder(order);
+        if (!ok) {
+            res.status = 503;
+            res.body = json{{"error", "FIX session not logged on or failed to send"}}.dump();
+            return;
+        }
+
+        res.status = 200;
+        res.body = json{{"status", "accepted"}, {"symbol", symbol}, {"quantity", quantity}, {"side", side}}.dump();
+    });
+
+    // GET /health
+    server_.Get("/health", [](const httplib::Request&, httplib::Response& res){
+        res.set_header("Content-Type", "application/json");
+        res.status = 200;
+        res.body = json{{"status", "ok"}}.dump();
+    });
 }

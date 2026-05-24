@@ -1,25 +1,21 @@
 #pragma once
 
 #include "OrderController.h"
-#include "Optional.h"
-#include "httplib.h"
-#include <memory>
-#include <thread>
+#include <httplib.h>
+#include <nlohmann/json.hpp>
 
 class HttpServer {
 public:
-    explicit HttpServer(OrderController& controller);
-    ~HttpServer();
+    explicit HttpServer(OrderController& controller, int port = 8080);
 
-    bool start(unsigned short port);
+    // Blocks the calling thread (call from a std::thread to run in background)
+    void start();
     void stop();
-    bool isRunning() const;
 
 private:
-    Optional<Order> parseOrderJson(const std::string& body);
+    void registerRoutes();
 
     OrderController& controller_;
-    std::unique_ptr<httplib::Server> server_;
-    std::thread serverThread_;
-    bool running_{false};
+    int port_;
+    httplib::Server server_;
 };
