@@ -9,7 +9,9 @@ A high-performance C++ Order Management System (OMS) that bridges REST/JSON requ
 - **Health Monitoring**: Built-in health check endpoint.
 
 ## Project Layout
-- `src/` - C++ source files
+- `include/orms/` - Project header files
+- `src/` - C++ implementation files
+- `thirdparty/` - External libraries (e.g., `httplib`)
 - `FIX42.xml` - FIX protocol dictionary
 - `quickfix.cfg` - Session settings (Sender: `BANZAI`, Target: `FIXIMULATOR`)
 
