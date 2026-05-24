@@ -91,3 +91,8 @@ cmake --build build
 
 ### `GET /health`
 Returns `{"status": "ok"}` if the server is healthy.
+
+## References 
+[QuickFIXJ](https://quickfixj.org/)
+
+[QuickFIX](https://quickfixengine.org/)
